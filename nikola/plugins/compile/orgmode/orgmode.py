@@ -51,6 +51,7 @@ try:
 except ImportError:
     write_metadata = None  # NOQA
 
+print("orgmode load")
 
 class CompileOrgmode(PageCompiler):
     """ Compile org-mode markup into HTML using emacs. """
@@ -58,6 +59,7 @@ class CompileOrgmode(PageCompiler):
     name = "orgmode"
 
     def compile(self, source, dest, is_two_file=True, post=None, lang=None):
+        print(f"compile: source {source}, dest {dest}")
         """Compile the source file into HTML and save as dest."""
         makedirs(os.path.dirname(dest))
         try:

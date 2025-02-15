@@ -2184,6 +2184,7 @@ class Nikola(object):
         self.pages = []
 
         for p in sorted(self.plugin_manager.get_plugins_of_category('PostScanner'), key=operator.attrgetter('name')):
+            print(f"p: {p}")
             try:
                 timeline = p.plugin_object.scan()
             except Exception:

@@ -100,6 +100,7 @@ def get_base_path(base):
     else:
         return sub_path + '/'
 
+print('sitemap plugin load')
 
 class Sitemap(LateTask):
     """Generate a sitemap."""
@@ -107,6 +108,7 @@ class Sitemap(LateTask):
     name = "sitemap"
 
     def gen_tasks(self):
+        print('gen_tasks called')
         """Generate a sitemap."""
         kw = {
             "base_url": self.site.config["BASE_URL"],
