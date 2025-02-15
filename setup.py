@@ -150,7 +150,7 @@ setup(name='Nikola',
       ],
       entry_points={
           'console_scripts': [
-              'nikola = nikola.__main__:main'
+              'nikola1 = nikola.__main__:main'
           ]
       },
       )

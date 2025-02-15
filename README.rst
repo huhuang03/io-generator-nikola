@@ -1,3 +1,5 @@
+This is for my post generator for github.io
+
 Nikola, a Static Site and Blog Generator
 ========================================
 
