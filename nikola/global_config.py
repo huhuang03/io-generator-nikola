@@ -45,3 +45,10 @@ COMPILERS = {
     "html": ['.html', '.htm'],
     "orgmode": ['.org']
 }
+
+PAGES = (
+    ("pages/*.rst", "pages", "page.tmpl"),
+    ("pages/*.md", "pages", "page.tmpl"),
+    ("pages/*.txt", "pages", "page.tmpl"),
+    ("pages/*.html", "pages", "page.tmpl"),
+)

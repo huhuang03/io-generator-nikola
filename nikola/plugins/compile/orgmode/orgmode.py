@@ -53,6 +53,7 @@ except ImportError:
 
 print("orgmode load")
 
+
 class CompileOrgmode(PageCompiler):
     """ Compile org-mode markup into HTML using emacs. """
 
