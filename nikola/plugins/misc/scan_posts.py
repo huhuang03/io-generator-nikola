@@ -30,6 +30,7 @@ import glob
 import os
 import sys
 
+from nikola.global_config import PostConfig, IPostConfig
 from nikola.plugin_categories import PostScanner
 from nikola import utils
 from nikola.post import Post
@@ -44,66 +45,51 @@ class ScanPosts(PostScanner):
 
     def scan(self):
         """Create list of posts from POSTS and PAGES options."""
-        seen = set([])
         if not self.site.quiet:
             print("Scanning posts", end='', file=sys.stderr)
+        return self._scan_post(post_config=self.site.config['post_config'])
 
+    def _scan_post(self, post_config: IPostConfig):
+        seen = set([])
         timeline = []
 
-        for wildcard, destination, template_name, use_in_feeds in \
-                self.site.config['post_pages']:
-            if not self.site.quiet:
-                print(".", end='', file=sys.stderr)
-            destination_translatable = utils.TranslatableSetting('destination', destination, self.site.config['TRANSLATIONS'])
-            dirname = os.path.dirname(wildcard)
-            for dirpath, _, _ in os.walk(dirname, followlinks=True):
-                rel_dest_dir = os.path.relpath(dirpath, dirname)
-                # Get all the untranslated paths
-                dir_glob = os.path.join(dirpath, os.path.basename(wildcard))  # posts/foo/*.rst
-                untranslated = glob.glob(dir_glob)
-                # And now get all the translated paths
-                translated = set([])
-                for lang in self.site.config['TRANSLATIONS'].keys():
-                    if lang == self.site.config['DEFAULT_LANG']:
-                        continue
-                    lang_glob = utils.get_translation_candidate(self.site.config, dir_glob, lang)  # posts/foo/*.LANG.rst
-                    translated = translated.union(set(glob.glob(lang_glob)))
-                # untranslated globs like *.rst often match translated paths too, so remove them
-                # and ensure x.rst is not in the translated set
-                untranslated = set(untranslated) - translated
+        wildcard = post_config.getPattern()
+        if not self.site.quiet:
+            print(".", end='', file=sys.stderr)
+        destination = 'posts'
+        template_name = 'post.tmpl'
+        use_in_feeds = False
+        destination_translatable = utils.TranslatableSetting('destination', destination,
+                                                             self.site.config['TRANSLATIONS'])
+        dirpath = post_config.getRoot()
 
-                # also remove from translated paths that are translations of
-                # paths in untranslated_list, so x.es.rst is not in the untranslated set
-                for p in untranslated:
-                    translated = translated - set([utils.get_translation_candidate(self.site.config, p, l) for l in self.site.config['TRANSLATIONS'].keys()])
-
-                full_list = list(translated) + list(untranslated)
-                # We eliminate from the list the files inside any .ipynb folder
-                full_list = [p for p in full_list
-                             if not any([x.startswith('.')
-                                         for x in p.split(os.sep)])]
-
-                for base_path in sorted(full_list):
-                    if base_path in seen:
-                        continue
-                    try:
-                        post = Post(
-                            base_path,
-                            self.site.config,
-                            rel_dest_dir,
-                            use_in_feeds,
-                            self.site.MESSAGES,
-                            template_name,
-                            self.site.get_compiler(base_path),
-                            destination_base=destination_translatable,
-                            metadata_extractors_by=self.site.metadata_extractors_by
-                        )
-                        for lang in post.translated_to:
-                            seen.add(post.translated_source_path(lang))
-                        timeline.append(post)
-                    except Exception:
-                        LOGGER.error('Error reading post {}'.format(base_path))
-                        raise
+        rel_dest_dir = '.'
+        # Get all the untranslated paths
+        dir_glob = os.path.join(dirpath, os.path.basename(wildcard))  # posts/foo/*.rst
+        untranslated = glob.glob(dir_glob)
+        full_list = untranslated
+        print(f'full_list: {full_list}')
+        for base_path in sorted(full_list):
+            if base_path in seen:
+                continue
+            try:
+                post = Post(
+                    base_path,
+                    self.site.config,
+                    rel_dest_dir,
+                    use_in_feeds,
+                    self.site.MESSAGES,
+                    template_name,
+                    self.site.get_compiler(base_path),
+                    destination_base=destination_translatable,
+                    metadata_extractors_by=self.site.metadata_extractors_by
+                )
+                for lang in post.translated_to:
+                    seen.add(post.translated_source_path(lang))
+                timeline.append(post)
+            except Exception:
+                LOGGER.error('Error reading post {}'.format(base_path))
+                raise
 
         return timeline
 

@@ -47,6 +47,7 @@ import textwrap
 import traceback
 
 from . import __version__
+from . import global_config
 from .nikola import Nikola
 from .plugin_categories import Command
 from .log import configure_logging, LOGGER, ColorfulFormatter, LoggingMode
@@ -118,13 +119,7 @@ def main(args=None):
 
     sys.path.insert(0, os.path.dirname(conf_filename))
     try:
-        spec = importlib.util.spec_from_file_location("conf", conf_filename)
-        conf = importlib.util.module_from_spec(spec)
-        # Preserve caching behavior of `import conf` if the filename matches
-        if os.path.splitext(os.path.basename(conf_filename))[0] == "conf":
-            sys.modules["conf"] = conf
-        spec.loader.exec_module(conf)
-        config = conf.__dict__
+        config = global_config.__dict__
     except Exception:
         if os.path.exists(conf_filename):
             msg = traceback.format_exc()

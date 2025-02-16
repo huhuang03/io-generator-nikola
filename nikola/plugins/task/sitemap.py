@@ -37,7 +37,6 @@ import dateutil.tz
 from nikola.plugin_categories import LateTask
 from nikola.utils import apply_filters, config_changed, encodelink
 
-
 urlset_header = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset
     xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -71,7 +70,6 @@ sitemap_format = """ <sitemap>
 """
 
 alternates_format = """\n  <xhtml:link rel="alternate" hreflang="{0}" href="{1}" />"""
-
 
 sitemapindex_footer = "</sitemapindex>"
 
@@ -107,6 +105,7 @@ class Sitemap(LateTask):
     name = "sitemap"
 
     def gen_tasks(self):
+        print('sitemap gen_tasks called')
         """Generate a sitemap."""
         kw = {
             "base_url": self.site.config["BASE_URL"],
@@ -114,14 +113,14 @@ class Sitemap(LateTask):
             "output_folder": self.site.config["OUTPUT_FOLDER"],
             "strip_indexes": self.site.config["STRIP_INDEXES"],
             "index_file": self.site.config["INDEX_FILE"],
-            "mapped_extensions": self.site.config.get('MAPPED_EXTENSIONS', ['.atom', '.html', '.htm', '.php', '.xml', '.rss']),
+            "mapped_extensions": self.site.config.get('MAPPED_EXTENSIONS',
+                                                      ['.atom', '.html', '.htm', '.php', '.xml', '.rss']),
             "robots_exclusions": self.site.config["ROBOTS_EXCLUSIONS"],
             "filters": self.site.config["FILTERS"],
             "translations": self.site.config["TRANSLATIONS"],
             "tzinfo": self.site.config['__tzinfo__'],
             "sitemap_plugin_revision": 1,
         }
-
         output = kw['output_folder']
         base_url = kw['base_url']
         mapped_exts = kw['mapped_extensions']
@@ -129,6 +128,7 @@ class Sitemap(LateTask):
         output_path = kw['output_folder']
         sitemapindex_path = os.path.join(output_path, "sitemapindex.xml")
         sitemap_path = os.path.join(output_path, "sitemap.xml")
+        print(f'sitemap_path: {sitemap_path}, exists: {os.path.exists(sitemap_path)}')
         base_path = get_base_path(kw['base_url'])
         sitemapindex = {}
         urlset = {}
@@ -193,7 +193,8 @@ class Sitemap(LateTask):
                         # sitemap_path is included after it is generated
                         if path.endswith('.xml') or path.endswith('.atom') or path.endswith('.rss'):
                             known_elm_roots = (b'<feed', b'<rss', b'<urlset')
-                            if any([elm_root in filehead.lower() for elm_root in known_elm_roots]) and path != sitemap_path:
+                            if any([elm_root in filehead.lower() for elm_root in
+                                    known_elm_roots]) and path != sitemap_path:
                                 path = path.replace(os.sep, '/')
                                 lastmod = self.get_lastmod(real_path)
                                 loc = urljoin(base_url, base_path + path)
@@ -229,6 +230,7 @@ class Sitemap(LateTask):
             """Write sitemap to file."""
             # Have to rescan, because files may have been added between
             # task dep scanning and task execution
+            print('write sitemap called')
             with io.open(sitemap_path, 'w+', encoding='utf8') as outf:
                 outf.write(urlset_header)
                 for k in sorted(urlset.keys()):
@@ -251,6 +253,7 @@ class Sitemap(LateTask):
             Other tasks can depend on this output, instead of having
             to scan locations.
             """
+            print('111')
             scan_locs()
 
             # Generate a list of file dependencies for the actual generation
@@ -258,26 +261,38 @@ class Sitemap(LateTask):
             output = kw["output_folder"]
             file_dep = []
 
-            for i in urlset.keys():
-                p = os.path.join(output, urlparse(i).path.replace(base_path, '', 1))
-                if not p.endswith('sitemap.xml') and not os.path.isdir(p):
-                    file_dep.append(p)
-                if os.path.isdir(p) and os.path.exists(os.path.join(p, 'index.html')):
-                    file_dep.append(p + 'index.html')
+            print(f'file_dep: {file_dep}')
+            def _handle(post_map):
+                for i in post_map.keys():
+                    p = os.path.join(output, urlparse(i).path.replace(base_path, '', 1))
+                    print(f'11 p: {p}')
+                    if not p.endswith('sitemap.xml') and not os.path.isdir(p):
+                        file_dep.append(p)
+                    if os.path.isdir(p) and os.path.exists(os.path.join(p, 'index.html')):
+                        file_dep.append(p + 'index.html')
 
-            for i in sitemapindex.keys():
-                p = os.path.join(output, urlparse(i).path.replace(base_path, '', 1))
-                if not p.endswith('sitemap.xml') and not os.path.isdir(p):
-                    file_dep.append(p)
-                if os.path.isdir(p) and os.path.exists(os.path.join(p, 'index.html')):
-                    file_dep.append(p + 'index.html')
+            _handle(urlset)
+            # for i in urlset.keys():
+            #     p = os.path.join(output, urlparse(i).path.replace(base_path, '', 1))
+            #     if not p.endswith('sitemap.xml') and not os.path.isdir(p):
+            #         file_dep.append(p)
+            #     if os.path.isdir(p) and os.path.exists(os.path.join(p, 'index.html')):
+            #         file_dep.append(p + 'index.html')
+            _handle(sitemapindex)
+
+            # for i in sitemapindex.keys():
+            #     p = os.path.join(output, urlparse(i).path.replace(base_path, '', 1))
+            #     if not p.endswith('sitemap.xml') and not os.path.isdir(p):
+            #         file_dep.append(p)
+            #     if os.path.isdir(p) and os.path.exists(os.path.join(p, 'index.html')):
+            #         file_dep.append(p + 'index.html')
 
             return {'file_dep': file_dep}
 
         yield {
             "basename": "_scan_locs",
             "name": "sitemap",
-            "actions": [(scan_locs_task)]
+            "actions": [scan_locs_task]
         }
 
         yield self.group_task()
@@ -294,6 +309,7 @@ class Sitemap(LateTask):
         yield apply_filters({
             "basename": "sitemap",
             "name": sitemapindex_path,
+            "task_dep": [f"sitemap:{sitemap_path}"],
             "targets": [sitemapindex_path],
             "actions": [(write_sitemapindex,)],
             "uptodate": [config_changed(kw, 'nikola.plugins.task.sitemap:write_index')],
@@ -309,10 +325,13 @@ class Sitemap(LateTask):
             # RFC 3339 (web ISO 8601 profile) represented in UTC with Zulu
             # zone desgignator as recommeded for sitemaps. Second and
             # microsecond precision is stripped for compatibility.
-            lastmod = datetime.datetime.fromtimestamp(os.stat(p).st_mtime, dateutil.tz.tzutc()).replace(second=0, microsecond=0).isoformat().replace('+00:00', 'Z')
+            lastmod = datetime.datetime.fromtimestamp(os.stat(p).st_mtime, dateutil.tz.tzutc()).replace(second=0,
+                                                                                                        microsecond=0).isoformat().replace(
+                '+00:00', 'Z')
             return lastmod
 
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()
